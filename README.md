@@ -12,7 +12,7 @@ Microsoft C++ Build Tools: Download from Visual Studio.
 
 CMake: Download from cmake.org.
 
-#Installation Steps
+# Installation Steps
 1. Set Up a Virtual Environment
 Create a virtual environment for the project: 
 [python -m venv venv]
