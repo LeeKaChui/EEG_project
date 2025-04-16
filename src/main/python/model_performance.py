@@ -15,8 +15,6 @@ MODEL_PATH = r"C:\Users\user\Documents\EEG_Project\model\unsloth.Q4_K_M1.gguf"
 # Path to the dataset
 DATASET_PATH = r"C:\Users\user\Documents\EEG_Project\src\EEG_dataset.json"
 
-# Load the dataset
-# Load the dataset
 def load_dataset(file_path):
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Dataset file not found at {file_path}")
@@ -24,13 +22,11 @@ def load_dataset(file_path):
     print(f"Loading dataset from {file_path}...")
     
     try:
-        # Load the JSON data
         with open(file_path, 'r') as f:
             data = json.load(f)  # Load the JSON data
         
         print(f"Dataset loaded. {len(data)} entries found.")
         
-        # Extract inputs and outputs
         eeg_data = []
         labels = []
         
@@ -38,14 +34,11 @@ def load_dataset(file_path):
             eeg_data.append(entry['input'])
             labels.append(entry['output'])
         
-        # Convert lists to numpy arrays
         eeg_data = np.array(eeg_data)
         labels = np.array(labels)
         
-        # Map the encoded classes (if necessary)
         label_mapping = {0: "Class 0", 1: "Class 1"}
         
-        # Display dataset statistics
         print(f"\nLabel distribution:")
         unique, counts = np.unique(labels, return_counts=True)
         for encoded, count in zip(unique, counts):
@@ -57,26 +50,21 @@ def load_dataset(file_path):
         print(f"Error loading dataset: {str(e)}")
         raise
 
-# Preprocess the EEG data
-# Preprocess the EEG data
 def preprocess_eeg_data(eeg_data):
     print("\nPreprocessing EEG data...")
     
-    # Check for non-numeric values and fill missing values if necessary
     if np.isnan(eeg_data).any():
         print("Filling missing values with column means...")
         col_means = np.nanmean(eeg_data, axis=0)
         inds = np.where(np.isnan(eeg_data))
         eeg_data[inds] = np.take(col_means, inds[1])
     
-    # Normalize the data
     scaler = StandardScaler()
     normalized_data = scaler.fit_transform(eeg_data)
     print("Data preprocessing complete.")
     
     return normalized_data
 
-# Load the model
 def load_model(model_path):
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found at {model_path}")
@@ -97,19 +85,14 @@ def load_model(model_path):
         print(f"Error loading model: {str(e)}")
         raise
 
-# Improved prompt for better classification balance
 def classify_eeg(model, eeg_features, label_mapping, class_weights=None):
-    # Limit features to prevent context overflow
     max_features = min(50, len(eeg_features))
     
-    # Format numbers with consistent decimal places
     eeg_data_str = " ".join([f"{val:.4f}" for val in eeg_features[:max_features]])
     
-    # Get class names
     class0 = label_mapping.get(0, "Class 0")
     class1 = label_mapping.get(1, "Class 1")
     
-    # Create a balanced prompt that explicitly encourages unbiased classification
     prompt = f"""
 ### EEG Classification Task
 Analyze this EEG data to determine whether it represents {class0} or {class1}.
@@ -131,10 +114,8 @@ Analyze this EEG data to determine whether it represents {class0} or {class1}.
 """
     
     try:
-        # Apply class weights if provided (to counteract bias)
         temperature = 0.1
         if class_weights is not None:
-            # For biased models, slightly increase temperature as class weight increases
             temp_multiplier = max(class_weights.values()) / min(class_weights.values())
             temperature = min(0.3, 0.1 * temp_multiplier)
         
@@ -148,16 +129,13 @@ Analyze this EEG data to determine whether it represents {class0} or {class1}.
         
         response_text = output["choices"][0]["text"].strip()
         
-        # Extract a number from the response
         for i in range(len(response_text)):
             if response_text[i:i+1] in ["0", "1"]:
                 predicted_class = int(response_text[i:i+1])
                 return predicted_class
         
-        # If no valid class found, use balanced randomization
         print(f"Warning: Could not extract a valid class from response: '{response_text}'")
         if class_weights:
-            # Use weighted random choice based on observed bias
             options = [0, 1]
             probabilities = [class_weights[0], class_weights[1]]
             total = sum(probabilities)
@@ -168,37 +146,30 @@ Analyze this EEG data to determine whether it represents {class0} or {class1}.
     
     except Exception as e:
         print(f"Error during classification: {str(e)}")
-        return random.randint(0, 1)  # Return random class on error
+        return random.randint(0, 1)
 
-# Evaluate with cross-validation
 def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
     print(f"\nPerforming {n_folds}-fold cross-validation...")
     
-    # Create stratified k-fold
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
     
-    # Track metrics across folds
     all_accuracies = []
     all_precisions = []
     all_recalls = []
     all_f1s = []
     all_confusion_matrices = []
     
-    # For accumulating predictions for final confusion matrix
     all_y_true = []
     all_y_pred = []
     
-    # To track class bias across folds
     class_predictions = {0: 0, 1: 0}
     
     for fold_idx, (train_idx, test_idx) in enumerate(skf.split(eeg_data, labels)):
         print(f"\nFold {fold_idx + 1}/{n_folds}")
         
-        # Get test set for this fold
         X_test = eeg_data[test_idx]
         y_test = labels[test_idx]
         
-        # Calculate class weights from previous folds (if any)
         class_weights = None
         if fold_idx > 0 and (class_predictions[0] + class_predictions[1]) > 0:
             # If there's a bias toward one class, adjust weights
@@ -214,10 +185,8 @@ def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
             
             print(f"Applying class weights to counteract bias: {class_weights}")
         
-        # Process test set samples
         fold_predictions = []
         
-        # Use a smaller batch size for CPU
         batch_size = 10
         num_batches = len(X_test) // batch_size + (1 if len(X_test) % batch_size > 0 else 0)
         
@@ -233,7 +202,6 @@ def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
                 prediction = classify_eeg(model, X_test[i], label_mapping, class_weights)
                 fold_predictions.append(prediction)
                 
-                # Track class distribution for bias detection
                 if prediction in class_predictions:
                     class_predictions[prediction] += 1
         
@@ -241,7 +209,6 @@ def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
         print(f"  Processed {len(X_test)} samples in {elapsed_time:.2f} seconds")
         print(f"  Class distribution in predictions: Class 0: {fold_predictions.count(0)}, Class 1: {fold_predictions.count(1)}")
         
-        # Calculate metrics for this fold
         accuracy = accuracy_score(y_test, fold_predictions)
         precision = precision_score(y_test, fold_predictions, average='weighted', zero_division=0)
         recall = recall_score(y_test, fold_predictions, average='weighted', zero_division=0)
@@ -254,18 +221,15 @@ def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
         print(f"    Recall: {recall:.4f}")
         print(f"    F1-Score: {f1:.4f}")
         
-        # Store metrics
         all_accuracies.append(accuracy)
         all_precisions.append(precision)
         all_recalls.append(recall)
         all_f1s.append(f1)
         all_confusion_matrices.append(cm)
         
-        # Store predictions for overall evaluation
         all_y_true.extend(y_test)
         all_y_pred.extend(fold_predictions)
         
-        # Plot confusion matrix for this fold
         plt.figure(figsize=(8, 6))
         display_labels = [f"{i}: {label_mapping[i]}" for i in sorted(label_mapping.keys())]
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=display_labels)
@@ -275,20 +239,17 @@ def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
         plt.savefig(f"confusion_matrix_fold_{fold_idx + 1}.png")
         plt.show()
     
-    # Calculate average metrics
     avg_accuracy = np.mean(all_accuracies)
     avg_precision = np.mean(all_precisions)
     avg_recall = np.mean(all_recalls)
     avg_f1 = np.mean(all_f1s)
     
-    # Display average metrics
     print("\nCross-Validation Results:")
     print(f"  Average Accuracy: {avg_accuracy:.4f} (±{np.std(all_accuracies):.4f})")
     print(f"  Average Precision: {avg_precision:.4f} (±{np.std(all_precisions):.4f})")
     print(f"  Average Recall: {avg_recall:.4f} (±{np.std(all_recalls):.4f})")
     print(f"  Average F1-Score: {avg_f1:.4f} (±{np.std(all_f1s):.4f})")
     
-    # Plot overall confusion matrix
     overall_cm = confusion_matrix(all_y_true, all_y_pred)
     plt.figure(figsize=(10, 8))
     display_labels = [f"{i}: {label_mapping[i]}" for i in sorted(label_mapping.keys())]
@@ -299,13 +260,11 @@ def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
     plt.savefig("overall_confusion_matrix.png")
     plt.show()
     
-    # Calculate per-class metrics from overall results
     overall_accuracy = accuracy_score(all_y_true, all_y_pred)
     overall_precision = precision_score(all_y_true, all_y_pred, average='weighted', zero_division=0)
     overall_recall = recall_score(all_y_true, all_y_pred, average='weighted', zero_division=0)
     overall_f1 = f1_score(all_y_true, all_y_pred, average='weighted', zero_division=0)
     
-    # Per-class metrics
     class_metrics = {}
     for cls in np.unique(all_y_true):
         cls_indices = np.array(all_y_true) == cls
@@ -316,7 +275,6 @@ def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
             )
             class_metrics[f"Class {cls} ({label_mapping[cls]})"] = cls_accuracy
     
-    # Return all metrics
     metrics = {
         "Overall Accuracy": overall_accuracy,
         "Overall Precision": overall_precision,
@@ -328,18 +286,14 @@ def evaluate_with_cv(model, eeg_data, labels, label_mapping, n_folds=5):
         "Cross-Val F1-Score": avg_f1,
     }
     
-    # Add per-class metrics
     metrics.update(class_metrics)
     
     return metrics, all_y_true, all_y_pred
 
-# Visualize metrics
 def plot_metrics(metrics):
-    # Filter and organize metrics
     main_metrics = {k: v for k, v in metrics.items() if "Overall" in k or "Cross-Val" in k}
     class_metrics = {k: v for k, v in metrics.items() if "Class" in k}
     
-    # Plot main metrics
     plt.figure(figsize=(12, 8))
     metric_names = list(main_metrics.keys())
     metric_values = list(main_metrics.values())
@@ -350,7 +304,6 @@ def plot_metrics(metrics):
     plt.title("Overall Performance Metrics")
     plt.grid(axis='x', linestyle='--', alpha=0.7)
     
-    # Add value labels
     for i, v in enumerate(metric_values):
         plt.text(max(v + 0.01, 0.01), i, f"{v:.4f}", va='center')
     
@@ -358,7 +311,6 @@ def plot_metrics(metrics):
     plt.savefig("overall_metrics.png")
     plt.show()
     
-    # Plot class metrics
     if class_metrics:
         plt.figure(figsize=(12, 6))
         class_names = list(class_metrics.keys())
@@ -371,7 +323,6 @@ def plot_metrics(metrics):
         plt.title("Per-Class Accuracy")
         plt.grid(axis='x', linestyle='--', alpha=0.7)
         
-        # Add value labels
         for i, v in enumerate(class_values):
             plt.text(max(v + 0.01, 0.01), i, f"{v:.4f}", va='center')
         
@@ -381,21 +332,16 @@ def plot_metrics(metrics):
 
 def main():
     try:
-        # Load the dataset
         eeg_data, labels, label_mapping = load_dataset(DATASET_PATH)
         
-        # Preprocess the data
         preprocessed_data = preprocess_eeg_data(eeg_data)
         
-        # Load the model
         model = load_model(MODEL_PATH)
         
-        # Evaluate with cross-validation
         metrics, y_true, y_pred = evaluate_with_cv(
             model, preprocessed_data, labels, label_mapping, n_folds=3
         )
         
-        # Visualize results
         plot_metrics(metrics)
         
         print("\nClassification completed successfully!")
