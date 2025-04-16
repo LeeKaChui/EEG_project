@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEG Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        .sample-data {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #classifyButton {
+            background-color: #28a745;
+            color: white;
+        }
+        #classifyButton:hover {
+            background-color: #218838;
+        }
+        #clearButton {
+            background-color: #6c757d;
+            color: white;
+        }
+        #clearButton:hover {
+            background-color: #5a6268;
+        }
+        #sampleButton {
+            background-color: #17a2b8;
+            color: white;
+        }
+        #sampleButton:hover {
+            background-color: #138496;
+        }
+        .result-section {
+            margin-top: 30px;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+        .result-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .result-label {
+            font-weight: bold;
+            margin-right: 10px;
+            width: 80px;
+        }
+        .result-value {
+            font-size: 20px;
+            padding: 5px 15px;
+            border-radius: 4px;
+            color: white;
+        }
+        .result-0 {
+            background-color: #dc3545;
+        }
+        .result-1 {
+            background-color: #28a745;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            font-style: italic;
+            color: #666;
+            display: none;
+        }
+        .server-status {
+            text-align: center;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .status-online {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-offline {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EEG Classifier</h1>
+        
+        <div id="serverStatus" class="server-status">Checking server status...</div>
+        
+        <div class="input-section">
+            <h3>Input EEG Data</h3>
+            <p>Enter numeric EEG data below or use the sample data button.</p>
+            <textarea id="eegData" placeholder="Enter EEG data here..."></textarea>
+            
+            <div class="button-container" style="margin-top: 15px;">
+                <button id="sampleButton">Use Sample Data</button>
+                <button id="clearButton">Clear</button>
+                <button id="classifyButton">Classify EEG Data</button>
+            </div>
+        </div>
+        
+        <div id="loading" class="loading">Processing data...</div>
+        <div id="errorMessage" class="error-message"></div>
+        
+        <div class="result-section">
+            <h3>Classification Result</h3>
+            <div class="result-container">
+                <span class="result-label">Result:</span>
+                <span id="resultValue">-</span>
+            </div>
+            
+            <h3>Raw Response</h3>
+            <div id="response">Results will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        // Check server status when page loads
+        window.addEventListener('DOMContentLoaded', checkServerStatus);
+        
+        // Sample EEG data for demo purposes
+        const sampleEEGData = "0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125, 0.0, -0.125, -0.25, -0.375, -0.5, -0.625, -0.75, -0.875, -1.0, -0.875, -0.75, -0.625, -0.5, -0.375, -0.25, -0.125";
+        
+        // Set up button event listeners
+        document.getElementById('classifyButton').addEventListener('click', classifyEEGData);
+        document.getElementById('clearButton').addEventListener('click', clearData);
+        document.getElementById('sampleButton').addEventListener('click', useSampleData);
+        
+        function checkServerStatus() {
+            const statusElement = document.getElementById('serverStatus');
+            statusElement.textContent = "Checking server status...";
+            statusElement.className = "server-status";
+            
+            fetch('http://localhost:5000/health')
+                .then(response => {
+                    if (response.ok) {
+                        statusElement.textContent = "Server Status: Online";
+                        statusElement.className = "server-status status-online";
+                        return;
+                    }
+                    throw new Error('Server not responding');
+                })
+                .catch(error => {
+                    statusElement.textContent = "Server Status: Offline (Please start the server)";
+                    statusElement.className = "server-status status-offline";
+                });
+        }
+        
+        function classifyEEGData() {
+            const eegData = document.getElementById('eegData').value.trim();
+            const errorElement = document.getElementById('errorMessage');
+            const loadingElement = document.getElementById('loading');
+            
+            // Clear previous errors
+            errorElement.style.display = 'none';
+            
+            if (!eegData) {
+                errorElement.textContent = "Please enter EEG data.";
+                errorElement.style.display = 'block';
+                return;
+            }
+            
+            // Show loading indicator
+            loadingElement.style.display = 'block';
+            document.getElementById('resultValue').textContent = "-";
+            document.getElementById('response').textContent = "Processing...";
+            
+            fetch('http://localhost:5000/classify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ eeg_data: eegData })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loading indicator
+                loadingElement.style.display = 'none';
+                
+                // Display result
+                const resultElement = document.getElementById('resultValue');
+                if (data.result !== null) {
+                    resultElement.textContent = data.result;
+                    resultElement.className = `result-value result-${data.result}`;
+                } else {
+                    resultElement.textContent = "Unknown";
+                    resultElement.className = "result-value";
+                }
+                
+                // Display raw response
+                document.getElementById('response').textContent = data.raw_response;
+            })
+            .catch(error => {
+                // Hide loading indicator
+                loadingElement.style.display = 'none';
+                
+                // Show error
+                errorElement.textContent = `Error: ${error.message}. Make sure the server is running.`;
+                errorElement.style.display = 'block';
+                document.getElementById('response').textContent = 'An error occurred while trying to classify the data.';
+            });
+        }
+        
+        function clearData() {
+            document.getElementById('eegData').value = '';
+            document.getElementById('resultValue').textContent = "-";
+            document.getElementById('resultValue').className = "result-value";
+            document.getElementById('response').textContent = "Results will appear here...";
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        function useSampleData() {
+            document.getElementById('eegData').value = sampleEEGData;
+        }
+    </script>
+</body>
+</html>

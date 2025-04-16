@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EEG Neural Analysis Platform</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4285f4;
+            --secondary-color: #8338ec;
+            --success-color: #34a853;
+            --warning-color: #fbbc05;
+            --danger-color: #ea4335;
+            --dark-color: #1a1a2e;
+            --light-color: #f8f9fa;
+            --bg-color: #f4f6f8;
+            --text-color: #333;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --card-bg: #ffffff;
+            --border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode {
+            --primary-color: #5c9cff;
+            --secondary-color: #9d4eff;
+            --success-color: #46c764;
+            --warning-color: #ffd117;
+            --danger-color: #ff5a7e;
+            --dark-color: #f8f9fa;
+            --light-color: #1a1a2e;
+            --bg-color: #121212;
+            --text-color: #f0f0f0;
+            --shadow-color: rgba(255, 255, 255, 0.05);
+            --card-bg: #1e1e1e;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px var(--shadow-color);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px var(--shadow-color);
+        }
+
+        .form-control {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border-color: var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            box-shadow: 0 0 0 0.25rem rgba(66, 133, 244, 0.25);
+            border-color: var(--primary-color);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 15px var(--shadow-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+            transform: rotate(30deg);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo i {
+            font-size: 1.8rem;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+        }
+
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(15deg);
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: rgba(0, 0, 0, 0.03);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .dark-mode .connection-status {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--danger-color);
+            box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.7);
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.connected {
+            background-color: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(52, 168, 83, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(52, 168, 83, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(52, 168, 83, 0);
+            }
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .card-title {
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem;
+            border-radius: 8px;
+            background-color: rgba(52, 168, 83, 0.1);
+            border: 1px solid var(--success-color);
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .server-status.error {
+            background-color: rgba(234, 67, 53, 0.1);
+            border: 1px solid var(--danger-color);
+        }
+
+        .server-status i {
+            margin-right: 10px;
+            color: var(--success-color);
+            font-size: 1.1rem;
+        }
+
+        .server-status.error i {
+            color: var(--danger-color);
+        }
+
+        .visualization {
+            height: 100px;
+            background-color: rgba(0, 0, 0, 0.03);
+            border-radius: 10px;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .dark-mode .visualization {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .eeg-wave {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wave-path {
+            stroke: var(--primary-color);
+            stroke-width: 2;
+            fill: none;
+            filter: drop-shadow(0 0 3px rgba(66, 133, 244, 0.5));
+            transition: all 0.3s ease;
+        }
+
+        .dark-mode .wave-path {
+            filter: drop-shadow(0 0 3px rgba(92, 156, 255, 0.5));
+        }
+
+        .sample-btn {
+            background-color: rgba(66, 133, 244, 0.1);
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .sample-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .sample-btn i {
+            font-size: 0.8rem;
+        }
+
+        .loading {
+            display: none;
+            margin: 1.5rem 0;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 10px;
+            background-color: rgba(66, 133, 244, 0.05);
+            border: 1px dashed rgba(66, 133, 244, 0.3);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(66, 133, 244, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 0.8rem;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .result-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            gap: 0.5rem;
+            float: right;
+            transition: all 0.3s ease;
+        }
+
+        .badge-0 {
+            background-color: rgba(131, 56, 236, 0.1);
+            color: var(--secondary-color);
+            border: 1px solid var(--secondary-color);
+        }
+
+        .badge-1 {
+            background-color: rgba(234, 67, 53, 0.1);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        .result-detail {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .result-detail:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        .dark-mode .result-detail:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .result-detail i {
+            margin-right: 12px;
+            color: var(--primary-color);
+            width: 18px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 0.8rem 0 1.2rem 0;
+            position: relative;
+        }
+
+        .dark-mode .progress-container {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary-color), var(--danger-color));
+            border-radius: 5px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            animation: progress-shine 2s infinite;
+        }
+
+        @keyframes progress-shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .result-indicators {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+            padding: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.02);
+            border-radius: 8px;
+        }
+
+        .dark-mode .result-indicators {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .result-indicator {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: white;
+            cursor: help;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px var(--shadow-color);
+        }
+
+        .result-indicator:hover {
+            transform: scale(1.1);
+        }
+
+        .result-indicator.result-0 {
+            background-color: var(--secondary-color);
+        }
+
+        .result-indicator.result-1 {
+            background-color: var(--danger-color);
+        }
+
+        .history-list {
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.02);
+            scrollbar-width: thin;
+        }
+
+        .dark-mode .history-list {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .history-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .history-list::-webkit-scrollbar-thumb {
+            background-color: var(--primary-color);
+            border-radius: 3px;
+        }
+
+        .history-item {
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background-color: var(--card-bg);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .history-item:hover {
+            background-color: rgba(66, 133, 244, 0.1);
+            transform: translateX(5px);
+        }
+
+        .history-item-time {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-item-time i {
+            color: var(--primary-color);
+        }
+
+        .history-item-result {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .history-item-badge {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: white;
+            box-shadow: 0 2px 5px var(--shadow-color);
+        }
+
+        .history-item-badge.result-0 {
+            background-color: var(--secondary-color);
+        }
+
+        .history-item-badge.result-1 {
+            background-color: var(--danger-color);
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 2rem;
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .result-container {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .disorder-0 {
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .disorder-1 {
+            color: var(--danger-color);
+            font-weight: 600;
+        }
+
+        /* Button styling */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px var(--shadow-color);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #fd7e14);
+            border: none;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #fd7e14, var(--warning-color));
+        }
+
+        /* Footer styling */
+        footer {
+            margin-top: auto;
+            padding: 1.5rem 0;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.8rem 0;
+            }
+            
+            .logo {
+                font-size: 1.3rem;
+            }
+            
+            .sample-btn {
+                padding: 0.4rem 0.7rem;
+                font-size: 0.8rem;
+            }
+            
+            .card-title {
+                font-size: 1.3rem;
+            }
+            
+            .result-badge {
+                float: none;
+                display: inline-flex;
+                margin-top: 0.5rem;
+            }
+        }
+
+        /* Wave animation for empty visualization */
+        @keyframes wave {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(20px); }
+        }
+
+        .empty-wave-text {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.5;
+            animation: wave 3s ease infinite;
+        }
+        
+        /* Version badge */
+        .version-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <header class="header mb-4">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <span>EEG Neural Analysis Platform</span>
+                </div>
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            <div class="version-badge">v0.0.1</div>
+        </div>
+    </header>
+
+    <main class="container mb-5">
+        <div class="connection-status">
+            <div id="statusDot" class="status-dot"></div>
+            <span id="statusText" class="status-text">Checking server connection...</span>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h2 class="card-title">
+                            <i class="fas fa-brain"></i> EEG Data Classification
+                        </h2>
+                        
+                        <div id="serverStatus" class="server-status">
+                            <i class="fas fa-circle-check"></i>
+                            <span>Server status: Checking...</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="eegData" class="form-label fw-bold">Enter EEG Data:</label>
+                            <textarea id="eegData" class="form-control" rows="4" placeholder="Paste your EEG data here or select a sample..."></textarea>
+                            
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <button class="sample-btn" data-sample="[69.425566, 52.911554, 69.753539, 61.668946, 50.872984, 24.871877, 41.806223, 38.057268, 36.312204, 31.755659, 14.364059, 11.294583, 18.985149, 17.044222, 12.85748, 6.743717, 7.30739, 3.860661, 18.962857, 50.933195, 65.836302, 75.278777, 62.960333, 19.359004, 27.357303, 36.51843, 46.801024, 35.626165, 4.437173, 13.655945, 16.975711, 16.886251, 14.760638, 5.206617, 5.183244, 55.905873, 31.863866, 19.30029, 4.794895, 70.900844, 39.422339, 22.209069, 13.863522, 3.164994, 19.438028, 20.469479, 12.69955, 6.067756, 1.018547, 6.791426, 1.394092, 86.725605, 66.528157, 24.710223, 71.598314, 76.852725, 72.541284, 56.568783, 23.741385, 34.123067, 51.390723, 48.123526, 36.159959, 21.901611, 27.671886, 18.712421, 88.056812, 42.061348, 49.880888, 69.644196, 81.314412, 74.772177, 38.849831, 25.320882, 47.316163, 51.595296, 42.600811, 32.214958, 26.093806, 22.221482, 68.288111, 32.278398, 52.180288, 68.389537, 82.480276, 57.985547, 14.46474, 34.476154, 42.489986, 40.072301, 37.185271, 17.556472, 18.663556, 7.84797, 15.552803, 26.971467, 49.948162, 64.784907, 0.992803, 8.186695, 14.680302, 20.32713, 20.996336, 1.995014, 4.454971, 81.765746, 53.944122, 37.860274, 12.47568, 60.816229, 65.872363, 47.282217, 27.401282, 16.319442, 39.299337, 19.436761, 84.912291, 67.328526, 26.222183, 61.510934, 85.203813, 75.079971, 49.644242, 38.680684, 56.149983, 38.41014, 82.367533, 39.4747, 40.968849, 73.241826, 81.686755, 66.169497, 50.391723, 47.96459, 43.750924, 67.276838, 27.685712, 56.884253, 68.143943, 60.282691, 63.667285, 36.294262, 39.545312, 8.096931, 23.364763, 35.204928, 44.891365, 57.600835, 14.243492, 24.991759, 75.079513, 53.129508, 31.831915, 29.635921, 69.970791, 42.592002, 87.643091, 62.428808, 52.037153, 83.440675, 63.001408, 80.733223, 64.433773, 72.386449, 69.459369, 69.962435, 52.386388, 65.11241, 54.545481, 76.534937, 80.309342]">
+                                    <i class="fas fa-flask"></i> Sample 1
+                                </button>
+                                <button class="sample-btn" data-sample="[42.209376, 47.133779, 36.863598, 29.258983, 23.278597, 18.510819, 33.383555, 13.123634, 5.058164, 4.562423, 5.921896, 2.430872, 1.127332, 0.085277, 0.078881, 0.595788, 1.165989, 2.337477, 16.878248, 29.157204, 41.947079, 54.68974, 66.816415, 11.407821, 11.294938, 13.122775, 21.001032, 32.131389, 1.294728, 1.592395, 2.653841, 1.93531, 1.642937, 1.990584, 2.212196, 67.438826, 37.357189, 25.928767, 16.729183, 55.504122, 37.035098, 12.599645, 6.487033, 3.206306, 12.042258, 7.149717, 1.223171, 0.411227, 4.968791, 1.094009, 12.766994, 80.848564, 64.293304, 40.025889, 47.422058, 64.153793, 43.060015, 33.756393, 19.256858, 11.575706, 20.704763, 12.290485, 3.348429, 0.132201, 0.492772, 4.70914, 88.498057, 59.522899, 30.493448, 56.360076, 56.337345, 55.94292, 40.516767, 7.448933, 19.526517, 16.110179, 7.377337, 4.589919, 0.771497, 0.730027, 81.966812, 19.906464, 42.699879, 48.810279, 60.58604, 55.855656, 3.583603, 14.300812, 14.466966, 8.822357, 7.476532, 1.65072, 0.820336, 12.832968, 24.458908, 30.457814, 49.992787, 68.732353, 1.338523, 5.784315, 8.871547, 8.017423, 8.887553, 4.424077, 1.948215, 52.37944, 16.988464, 11.675558, 8.124903, 39.20493, 24.018371, 7.729477, 1.110864, 0.904659, 0.027247, 2.065277, 65.534595, 50.605443, 24.009938, 34.607522, 58.471122, 40.475068, 18.146849, 6.352528, 2.679664, 0.294422, 75.341959, 35.365387, 11.965242, 44.822232, 48.218144, 33.23804, 17.046786, 2.924852, 1.840582, 72.015017, 7.285334, 35.251158, 46.868021, 42.845952, 39.499979, 0.794626, 5.578517, 2.696216, 12.277804, 21.311722, 28.32931, 45.898654, 1.336247, 3.299022, 49.645195, 19.2554, 7.07132, 3.879967, 17.644562, 6.23285, 69.64412, 42.157919, 20.913072, 30.755193, 19.498368, 68.923855, 38.473468, 23.976022, 33.404032, 64.858934, 17.835594, 40.905419, 7.605557, 47.015918, 34.804139]">
+                                    <i class="fas fa-flask"></i> Sample 2
+                                </button>
+                                <button class="sample-btn" data-sample="[68.525093, 62.635858, 68.602408, 59.790414, 46.588532, 41.058479, 34.949145, 41.123316, 38.401857, 33.663494, 22.191161, 3.49026, 14.842053, 20.415461, 9.986675, 1.473948, 0.952447, 1.021937, 35.237818, 43.103232, 50.197447, 53.133246, 63.961959, 15.791043, 22.071715, 27.800302, 33.786736, 36.045474, 0.731885, 6.573948, 12.873671, 9.603104, 3.677707, 0.40298, 1.334533, 69.330951, 48.941979, 23.271623, 23.628682, 58.77489, 48.208328, 27.949771, 22.917696, 13.432643, 8.454014, 16.47533, 17.251786, 5.067621, 0.002893, 1.08729, 0.177686, 78.246441, 49.815185, 35.387917, 48.100138, 74.54004, 64.279499, 53.062909, 27.332977, 16.128036, 39.273919, 44.008249, 22.593777, 4.814758, 8.137287, 3.418499, 55.35379, 46.463695, 26.379856, 62.622273, 67.022284, 64.898981, 40.336531, 9.774133, 31.625204, 45.231607, 29.143519, 9.084666, 6.671828, 4.783559, 64.55732, 22.138824, 36.288798, 55.563939, 63.040132, 44.066478, 4.480797, 19.895156, 29.015878, 25.318698, 12.293062, 2.313257, 4.068257, 11.262126, 20.534426, 30.318732, 48.091683, 68.332013, 0.5885, 7.025659, 16.539377, 15.916741, 10.268005, 0.624567, 2.182282, 47.131288, 25.758383, 16.60127, 7.877383, 25.753522, 28.864656, 18.268148, 6.224, 0.798804, 5.040921, 1.205156, 75.275085, 59.847331, 23.247386, 34.162788, 71.18596, 65.67563, 39.875742, 10.418408, 25.261243, 9.851083, 79.015115, 34.135725, 20.56471, 58.814203, 71.962613, 51.110754, 18.585336, 19.09615, 13.390759, 62.283147, 13.378973, 46.720418, 67.621378, 66.178417, 33.932335, 16.193857, 19.690183, 4.55087, 15.951754, 32.890333, 40.737064, 38.61093, 5.689975, 14.34108, 56.845762, 35.745665, 20.281287, 10.604695, 52.243744, 16.155926, 80.402361, 54.882487, 21.995313, 63.844052, 30.024669, 70.576779, 33.77515, 47.442479, 36.923258, 66.933203, 40.228124, 59.866159, 25.18437, 59.626478, 48.314789]">
+                                    <i class="fas fa-flask"></i> Sample 3
+                                </button>
+                            </div>
+                            
+                            <div class="visualization mt-3">
+                                <div class="eeg-wave">
+                                    <svg class="wave-animation" viewBox="0 0 1000 100" preserveAspectRatio="none">
+                                        <path id="wavePath" class="wave-path" d="M0,50 Q50,30 100,50 T200,50 T300,50 T400,50 T500,50 T600,50 T700,50 T800,50 T900,50 T1000,50"></path>
+                                    </svg>
+                                    <div id="emptyWaveText" class="empty-wave-text">EEG data visualization will appear here</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex">
+                            <button id="classifyBtn" class="btn btn-primary">
+                                <i class="fas fa-brain"></i> Classify Data
+                            </button>
+                            <button id="clearBtn" class="btn btn-warning">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                        </div>
+                        
+                        <div id="loading" class="loading">
+                            <div class="spinner"></div>
+                            <p class="loading-text">Processing EEG data (running 10 predictions)...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="resultContainer" class="card shadow-sm mb-4 result-container">
+                    <div class="card-body">
+                        <h2 class="card-title">
+                            <i class="fas fa-chart-pie"></i> Classification Result
+                            <span id="resultBadge" class="result-badge"></span>
+                        </h2>
+                        <div>
+                            <div class="result-detail">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Classification: <strong id="resultValue">-</strong></span>
+                            </div>
+                            <div class="result-detail">
+                                <i class="fas fa-percentage"></i>
+                                <span>Disorder Probability: <strong id="resultProbability">-</strong></span>
+                            </div>
+                            <div class="progress-container">
+                                <div id="probabilityBar" class="progress-bar" style="width: 0%"></div>
+                            </div>
+                            <div class="result-detail">
+                                <i class="fas fa-list-ol"></i>
+                                <span>Individual Results:</span>
+                            </div>
+                            <div id="resultIndicators" class="result-indicators">
+                                <!-- Will be populated dynamically -->
+                            </div>
+                            <div class="result-detail">
+                                <i class="fas fa-clock"></i>
+                                <span>Time: <span id="resultTime">-</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h2 class="card-title">
+                            <i class="fas fa-history"></i> Classification History
+                        </h2>
+                        <div id="historyList" class="history-list">
+                            <div class="no-history">No classification history yet</div>
+                        </div>
+                        <button id="clearHistoryBtn" class="btn btn-warning mt-3">
+                            <i class="fas fa-trash"></i> Clear History
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>EEG Neural Analysis Platform &copy; 2025 | Advanced Classification System</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // DOM Elements
+        const themeToggle = document.getElementById('themeToggle');
+        const eegDataInput = document.getElementById('eegData');
+        const classifyBtn = document.getElementById('classifyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultBadge = document.getElementById('resultBadge');
+        const resultValue = document.getElementById('resultValue');
+        const resultProbability = document.getElementById('resultProbability');
+        const probabilityBar = document.getElementById('probabilityBar');
+        const resultIndicators = document.getElementById('resultIndicators');
+        const resultTime = document.getElementById('resultTime');
+        const loading = document.getElementById('loading');
+        const serverStatus = document.getElementById('serverStatus');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const historyList = document.getElementById('historyList');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const wavePath = document.getElementById('wavePath');
+        const sampleButtons = document.querySelectorAll('.sample-btn');
+        const emptyWaveText = document.getElementById('emptyWaveText');
+
+        // Server URL
+        const SERVER_URL = window.location.origin;
+
+        // Disorder names for class 0 and 1
+        const DISORDERS = {
+            0: "Alcohol Use Disorder",
+            1: "Depressive Disorder"
+        };
+
+        // Theme Toggle
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            themeToggle.innerHTML = document.body.classList.contains('dark-mode') 
+                ? '<i class="fas fa-sun"></i>' 
+                : '<i class="fas fa-moon"></i>';
+            
+            // Save theme preference
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        });
+
+        // Load saved theme
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+
+        // Check server connection
+        async function checkServerConnection() {
+            try {
+                const response = await fetch(`${SERVER_URL}/health`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    serverStatus.innerHTML = `
+                        <i class="fas fa-circle-check"></i>
+                        <span>Server status: Online${data.model_loaded ? ' (Model loaded)' : ' (Model not loaded)'}</span>
+                    `;
+                    serverStatus.classList.remove('error');
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'Connected to server';
+                    
+                    // Load history after confirming connection
+                    loadHistory();
+                    
+                    return true;
+                } else {
+                    throw new Error('Server health check failed');
+                }
+            } catch (error) {
+                console.error('Server connection error:', error);
+                serverStatus.innerHTML = `
+                    <i class="fas fa-circle-xmark"></i>
+                    <span>Server status: Offline (Cannot connect to ${SERVER_URL})</span>
+                `;
+                serverStatus.style.backgroundColor = 'rgba(234, 67, 53, 0.1)';
+                serverStatus.style.borderColor = 'var(--danger-color)';
+                serverStatus.classList.add('error');
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected from server';
+                return false;
+            }
+        }
+
+        // Initial server connection check
+        checkServerConnection();
+
+        // Sample data buttons
+        sampleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                eegDataInput.value = button.dataset.sample;
+                updateWaveVisualization(JSON.parse(button.dataset.sample));
+            });
+        });
+
+        // Update wave visualization
+        function updateWaveVisualization(data) {
+            if (!Array.isArray(data) || data.length === 0) {
+                emptyWaveText.style.display = 'block';
+                return;
+            }
+            
+            emptyWaveText.style.display = 'none';
+            
+            // Normalize data to fit in our visualization
+            const minVal = Math.min(...data);
+            const maxVal = Math.max(...data);
+            const range = maxVal - minVal;
+            
+            // Create path for the wave
+            let path = `M0,50 `;
+            const step = 1000 / data.length;
+            
+            data.forEach((val, i) => {
+                // Normalize to 0-100 range (with 50 as center)
+                const normalizedVal = range === 0 ? 50 : 50 - ((val - minVal) / range) * 40;
+                path += `L${i * step},${normalizedVal} `;
+            });
+            
+            wavePath.setAttribute('d', path);
+        }
+
+        // Parse EEG data input
+        function parseEEGData() {
+            try {
+                // First try to parse as JSON
+                const input = eegDataInput.value.trim();
+                try {
+                    const data = JSON.parse(input);
+                    if (Array.isArray(data)) {
+                        updateWaveVisualization(data);
+                        return data;
+                    }
+                } catch (e) {
+                    // Not valid JSON, try other formats
+                }
+                
+                // Try to parse as comma-separated values
+                if (input.includes(',')) {
+                    const values = input.split(',').map(item => {
+                        // Clean up the item and parse it
+                        return parseFloat(item.replace(/[\[\]\s]/g, '').trim());
+                    }).filter(val => !isNaN(val));
+                    
+                    if (values.length > 0) {
+                        updateWaveVisualization(values);
+                        return values;
+                    }
+                }
+                
+                throw new Error("Could not parse EEG data");
+            } catch (error) {
+                alert('Invalid EEG data format. Please enter valid numbers.');
+                console.error('Error parsing EEG data:', error);
+                return null;
+            }
+        }
+
+        // Classify EEG data
+        async function classifyEEGData() {
+            const eegData = parseEEGData();
+            if (!eegData) return;
+            
+            // Show loading
+            loading.style.display = 'block';
+            resultContainer.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${SERVER_URL}/classify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ eeg_data: eegData }),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Hide loading
+                loading.style.display = 'none';
+                resultContainer.style.display = 'block';
+                
+                // Update result
+                const result = data.result;
+                const probability = data.probability;
+                
+                // Display disorder name instead of class number
+                resultValue.textContent = result !== null ? DISORDERS[result] : 'Unknown';
+                resultValue.className = result !== null ? `disorder-${result}` : '';
+                
+                resultProbability.textContent = `${probability.toFixed(1)}%`;
+                probabilityBar.style.width = `${probability}%`;
+                resultTime.textContent = new Date().toLocaleTimeString();
+                
+                // Update result indicators
+                resultIndicators.innerHTML = '';
+                if (Array.isArray(data.individual_results)) {
+                    data.individual_results.forEach((indResult, index) => {
+                        const indicator = document.createElement('div');
+                        indicator.className = `result-indicator result-${indResult !== null ? indResult : 'unknown'}`;
+                        indicator.textContent = indResult !== null ? indResult : '?';
+                        
+                        // Update tooltip to show disorder name
+                        const disorderName = indResult !== null ? DISORDERS[indResult] : 'Unknown';
+                        indicator.title = `Prediction ${index + 1}: ${disorderName}`;
+                        
+                        resultIndicators.appendChild(indicator);
+                    });
+                }
+                
+                // Update badge
+                if (result === 0) {
+                    resultBadge.className = 'result-badge badge-0';
+                    resultBadge.innerHTML = `<i class="fas fa-wine-bottle"></i> AUD`;
+                } else if (result === 1) {
+                    resultBadge.className = 'result-badge badge-1';
+                    resultBadge.innerHTML = `<i class="fas fa-cloud-rain"></i> DD`;
+                }
+                
+                // Refresh history
+                loadHistory();
+                
+            } catch (error) {
+                console.error('Error classifying EEG data:', error);
+                loading.style.display = 'none';
+                
+                // Check server connection again
+                const isConnected = await checkServerConnection();
+                
+                if (!isConnected) {
+                    alert('Cannot connect to the server. Please check if the server is running.');
+                } else {
+                    alert(`Error classifying EEG data: ${error.message}`);
+                }
+            }
+        }
+
+        // Load history from server
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${SERVER_URL}/history`, {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                // Clear current history display
+                historyList.innerHTML = '';
+                
+                if (!data.history || data.history.length === 0) {
+                    historyList.innerHTML = '<div class="no-history">No classification history yet</div>';
+                    return;
+                }
+                
+                // Add history items
+                data.history.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    
+                    const result = item.final_result;
+                    const badgeClass = result === 0 ? 'result-0' : 
+                                    result === 1 ? 'result-1' : 'result-unknown';
+                    
+                    const timestamp = new Date(item.timestamp);
+                    const timeString = timestamp.toLocaleTimeString();
+                    
+                    // Get disorder abbreviation
+                    const disorderAbbr = result === 0 ? 'AUD' : result === 1 ? 'DD' : '?';
+                    
+                    historyItem.innerHTML = `
+                        <div class="history-item-time">
+                            <i class="fas fa-clock"></i>
+                            ${timeString}
+                        </div>
+                        <div class="history-item-result">
+                            <div class="history-item-badge ${badgeClass}">${disorderAbbr}</div>
+                            ${item.probability.toFixed(1)}% Probability
+                        </div>
+                    `;
+                    
+                    // Click to reuse the data
+                    historyItem.addEventListener('click', () => {
+                        eegDataInput.value = JSON.stringify(item.eeg_data);
+                        updateWaveVisualization(item.eeg_data);
+                    });
+                    
+                    historyList.appendChild(historyItem);
+                });
+                
+            } catch (error) {
+                console.error('Error loading history:', error);
+                historyList.innerHTML = '<div class="no-history" style="color: var(--danger-color);">Error loading history</div>';
+            }
+        }
+
+        // Clear history
+        async function clearHistory() {
+            try {
+                const response = await fetch(`${SERVER_URL}/clear_history`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // Refresh history display
+                    loadHistory();
+                } else {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error clearing history:', error);
+                alert(`Error clearing history: ${error.message}`);
+            }
+        }
+
+        // Clear inputs
+        clearBtn.addEventListener('click', () => {
+            eegDataInput.value = '';
+            updateWaveVisualization([]);
+        });
+
+        // Classify button click
+        classifyBtn.addEventListener('click', classifyEEGData);
+
+        // Clear history button click
+        clearHistoryBtn.addEventListener('click', clearHistory);
+
+        // EEG data input change
+        eegDataInput.addEventListener('input', () => {
+            try {
+                const data = JSON.parse(eegDataInput.value.trim());
+                if (Array.isArray(data)) {
+                    updateWaveVisualization(data);
+                }
+            } catch (e) {
+                // Ignore parsing errors during typing
+            }
+        });
+
+        // Auto-reconnect attempt
+        setInterval(checkServerConnection, 10000);
+    </script>
+</body>
+</html>
