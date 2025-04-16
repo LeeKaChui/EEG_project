@@ -22,11 +22,12 @@ Install the necessary packages using pip:
 [pip install flask flask-cors llama-cpp-python]
 
 3. Download the Model
-Download the model from the provided Google Drive link and place it in the following directory:
+Download the model from the provided Google Drive link and place it in the following directory: 
+[https://drive.google.com/file/d/19DMpD1ICo8PahXzV2In3mu0OJa06RW5O/view?usp=sharing]
 #C:\Users\user\Documents\EEG_Project\model\
 Make sure the model file is named unsloth.Q4_K_M.gguf.
 
-4. Running the Application
+5. Running the Application
 To run the application, execute the following command in your terminal: 
 [python localhost_server.py]
 
