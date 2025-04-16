@@ -549,7 +549,6 @@
             font-weight: 600;
         }
 
-        /* Button styling */
         .btn {
             padding: 0.6rem 1.2rem;
             border-radius: 8px;
@@ -584,7 +583,6 @@
             background: linear-gradient(135deg, #fd7e14, var(--warning-color));
         }
 
-        /* Footer styling */
         footer {
             margin-top: auto;
             padding: 1.5rem 0;
@@ -596,7 +594,6 @@
             opacity: 0.8;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 768px) {
             .header {
                 padding: 0.8rem 0;
@@ -622,7 +619,6 @@
             }
         }
 
-        /* Wave animation for empty visualization */
         @keyframes wave {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(20px); }
@@ -635,7 +631,6 @@
             animation: wave 3s ease infinite;
         }
         
-        /* Version badge */
         .version-badge {
             position: absolute;
             top: 10px;
@@ -789,10 +784,8 @@
         </div>
     </footer>
 
-    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // DOM Elements
         const themeToggle = document.getElementById('themeToggle');
         const eegDataInput = document.getElementById('eegData');
         const classifyBtn = document.getElementById('classifyBtn');
@@ -823,14 +816,13 @@
             1: "Depressive Disorder"
         };
 
-        // Theme Toggle
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             themeToggle.innerHTML = document.body.classList.contains('dark-mode') 
                 ? '<i class="fas fa-sun"></i>' 
                 : '<i class="fas fa-moon"></i>';
             
-            // Save theme preference
+            // Save theme
             localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
         });
 
@@ -890,7 +882,7 @@
             });
         });
 
-        // Update wave visualization
+        // wave visualization
         function updateWaveVisualization(data) {
             if (!Array.isArray(data) || data.length === 0) {
                 emptyWaveText.style.display = 'block';
@@ -1026,7 +1018,6 @@
                 console.error('Error classifying EEG data:', error);
                 loading.style.display = 'none';
                 
-                // Check server connection again
                 const isConnected = await checkServerConnection();
                 
                 if (!isConnected) {
@@ -1046,7 +1037,6 @@
                 
                 const data = await response.json();
                 
-                // Clear current history display
                 historyList.innerHTML = '';
                 
                 if (!data.history || data.history.length === 0) {
@@ -1054,7 +1044,6 @@
                     return;
                 }
                 
-                // Add history items
                 data.history.forEach(item => {
                     const historyItem = document.createElement('div');
                     historyItem.className = 'history-item';
@@ -1066,7 +1055,6 @@
                     const timestamp = new Date(item.timestamp);
                     const timeString = timestamp.toLocaleTimeString();
                     
-                    // Get disorder abbreviation
                     const disorderAbbr = result === 0 ? 'AUD' : result === 1 ? 'DD' : '?';
                     
                     historyItem.innerHTML = `
@@ -1080,7 +1068,6 @@
                         </div>
                     `;
                     
-                    // Click to reuse the data
                     historyItem.addEventListener('click', () => {
                         eegDataInput.value = JSON.stringify(item.eeg_data);
                         updateWaveVisualization(item.eeg_data);
@@ -1106,7 +1093,6 @@
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    // Refresh history display
                     loadHistory();
                 } else {
                     throw new Error(data.message || 'Unknown error');
@@ -1117,19 +1103,15 @@
             }
         }
 
-        // Clear inputs
         clearBtn.addEventListener('click', () => {
             eegDataInput.value = '';
             updateWaveVisualization([]);
         });
 
-        // Classify button click
         classifyBtn.addEventListener('click', classifyEEGData);
 
-        // Clear history button click
         clearHistoryBtn.addEventListener('click', clearHistory);
 
-        // EEG data input change
         eegDataInput.addEventListener('input', () => {
             try {
                 const data = JSON.parse(eegDataInput.value.trim());
@@ -1137,11 +1119,9 @@
                     updateWaveVisualization(data);
                 }
             } catch (e) {
-                // Ignore parsing errors during typing
             }
         });
 
-        // Auto-reconnect attempt
         setInterval(checkServerConnection, 10000);
     </script>
 </body>
